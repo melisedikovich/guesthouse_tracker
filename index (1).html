@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1B1917">
+<title>Гостевой дом</title>
+<style>
+  :root{
+    --ink: #1B1917;
+    --bone: #EDE7D9;
+    --bone-dim: #B9B0A0;
+    --gold: #C6963B;
+    --free: #6E8F5C;
+    --free-bg: #263124;
+    --booked: #C6963B;
+    --booked-bg: #332A18;
+    --occupied: #B24C3F;
+    --occupied-bg: #331F1B;
+    --card-bg: #211E1A;
+    --border: #3A342C;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--ink);
+    color: var(--bone);
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    min-height: 100vh;
+  }
+  .wrap{
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+  header{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  h1{
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    margin: 0 0 4px 0;
+    color: var(--bone);
+  }
+  .subtitle{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .header-right{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .summary{
+    display:flex;
+    gap: 18px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--bone-dim);
+  }
+  .summary b{ color: var(--bone); font-weight: 600; }
+  .dot{
+    display:inline-block;
+    width: 8px; height:8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .lang-toggle{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--bone-dim);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .lang-toggle:hover{ border-color: var(--gold); color: var(--gold); }
+
+  .toolbar{
+    margin-bottom: 16px;
+  }
+  .add-room{
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--bone-dim);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12.5px;
+    letter-spacing: 0.4px;
+    padding: 9px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .add-room:hover{ border-color: var(--gold); color: var(--gold); }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 640px){
+    .grid{ grid-template-columns: repeat(2, 1fr); }
+    header{ flex-direction: column; align-items: flex-start; }
+  }
+  .card{
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s ease, transform 0.12s ease;
+    overflow: hidden;
+    position: relative;
+  }
+  .card:hover{ border-color: var(--gold); transform: translateY(-1px); }
+  .card-pattern{ height: 6px; width: 100%; }
+  .remove-btn{
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.35);
+    color: var(--bone-dim);
+    border: none;
+    font-size: 13px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .remove-btn:hover{ background: var(--occupied); color: var(--bone); }
+  .card-body{ padding: 18px 16px 16px; }
+  .room-number-input{
+    background: transparent;
+    border: none;
+    font-family: 'Georgia', serif;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 400;
+    color: var(--bone);
+    margin-bottom: 6px;
+    width: 100%;
+    padding: 0;
+    outline: none;
+    border-bottom: 1px solid transparent;
+  }
+  .room-number-input:focus{ border-bottom-color: var(--gold); }
+  .capacity{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    color: var(--bone-dim);
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+  }
+  .status-label{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .date-row{ margin-top: 12px; display: flex; gap: 10px; }
+  .date-field{ flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .date-field label, .payment-field label, .amount-field label{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--bone-dim);
+  }
+  .date-input, .amount-input, .note-input{
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--bone-dim);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    padding: 3px 0;
+    outline: none;
+    width: 100%;
+  }
+  .date-input:focus, .amount-input:focus, .note-input:focus{ border-bottom-color: var(--gold); }
+  .date-input::placeholder, .amount-input::placeholder, .note-input::placeholder{ color: #6A6357; }
+
+  .payment-row{ margin-top: 10px; display: flex; gap: 10px; }
+  .payment-field{ flex: 1.4; display: flex; flex-direction: column; gap: 2px; }
+  .amount-field{ flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .payment-select{
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--bone-dim);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    padding: 3px 0;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+  }
+  .payment-select:focus{ border-bottom-color: var(--gold); }
+  .payment-select option{ background: var(--card-bg); color: var(--bone); }
+
+  .note-row{ margin-top: 12px; }
+
+  .card.free .card-pattern{ background-color: var(--free); }
+  .card.free .status-label{ background: var(--free-bg); color: var(--free); }
+  .card.booked .card-pattern{ background-color: var(--booked); }
+  .card.booked .status-label{ background: var(--booked-bg); color: var(--booked); }
+  .card.occupied .card-pattern{ background-color: var(--occupied); }
+  .card.occupied .status-label{ background: var(--occupied-bg); color: var(--occupied); }
+
+  .hint{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11.5px;
+    color: var(--bone-dim);
+    margin-top: 22px;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .saving{
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    color: var(--bone-dim);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .saving.show{ opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="hTitle">Гостевой дом</h1>
+      <div class="subtitle" id="hSubtitle"></div>
+    </div>
+    <div class="header-right">
+      <div class="summary" id="summary"></div>
+      <button class="lang-toggle" id="langToggle">EN</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="add-room" id="addRoom">+ <span id="addRoomLabel">Добавить номер</span></button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="hint" id="hint"></div>
+</div>
+<div class="saving" id="saving"></div>
+
+<script>
+const STORAGE_KEY = 'guesthouse-rooms-v2';
+const LANG_KEY = 'guesthouse-lang';
+
+const T = {
+  ru: {
+    title: 'Гостевой дом',
+    subtitle: n => `${n} ${roomWordRu(n)} · план заселения`,
+    free: 'свободно', booked: 'бронь', occupied: 'занято',
+    addRoom: 'Добавить номер',
+    beds: 'коек',
+    statusLabels: { free: 'Свободен', booked: 'Бронь', occupied: 'Занят' },
+    paymentLabels: { none: 'Не оплачено', deposit: 'Задаток', partial: 'Оплачено частично', paid: 'Оплачено' },
+    from: 'С', to: 'До', payment: 'Оплата', amount: 'Сумма',
+    notePlaceholder: 'заметка...',
+    hint: 'Нажмите на карточку, чтобы сменить статус. Номер, даты, оплату и заметку можно редактировать прямо в полях. Крестик — удалить номер.',
+    saved: 'сохранено', roomNo: '№'
+  },
+  en: {
+    title: 'Guesthouse',
+    subtitle: n => `${n} room${n===1?'':'s'} · occupancy plan`,
+    free: 'free', booked: 'booked', occupied: 'occupied',
+    addRoom: 'Add room',
+    beds: 'beds',
+    statusLabels: { free: 'Free', booked: 'Booked', occupied: 'Occupied' },
+    paymentLabels: { none: 'Not paid', deposit: 'Deposit', partial: 'Partially paid', paid: 'Paid' },
+    from: 'From', to: 'To', payment: 'Payment', amount: 'Amount',
+    notePlaceholder: 'note...',
+    hint: 'Click a card to cycle its status. Room number, dates, payment and note are editable fields. The × removes a room.',
+    saved: 'saved', roomNo: 'No.'
+  }
+};
+function roomWordRu(n){
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod10===1 && mod100!==11) return 'номер';
+  if([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) return 'номера';
+  return 'номеров';
+}
+
+const STATUSES = ['free', 'booked', 'occupied'];
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+let rooms = [];
+let nextId = 1;
+
+function defaultRooms(){
+  const arr = [];
+  for(let i=1;i<=9;i++){
+    arr.push({ id: nextId++, number: String(i), status: 'free', note: '', dateFrom: '', dateTo: '', payment: 'none', amount: '' });
+  }
+  return arr;
+}
+
+const grid = document.getElementById('grid');
+const summaryEl = document.getElementById('summary');
+const savingEl = document.getElementById('saving');
+
+function applyStaticText(){
+  const t = T[lang];
+  document.getElementById('hTitle').textContent = t.title;
+  document.getElementById('hSubtitle').textContent = t.subtitle(rooms.length);
+  document.getElementById('addRoomLabel').textContent = t.addRoom;
+  document.getElementById('hint').textContent = t.hint;
+  document.getElementById('langToggle').textContent = lang === 'ru' ? 'EN' : 'RU';
+  document.documentElement.lang = lang;
+  savingEl.textContent = t.saved;
+}
+
+function renderSummary(){
+  const t = T[lang];
+  const counts = { free:0, booked:0, occupied:0 };
+  rooms.forEach(r => counts[r.status]++);
+  summaryEl.innerHTML = `
+    <span><span class="dot" style="background:var(--free)"></span><b>${counts.free}</b> ${t.free}</span>
+    <span><span class="dot" style="background:var(--booked)"></span><b>${counts.booked}</b> ${t.booked}</span>
+    <span><span class="dot" style="background:var(--occupied)"></span><b>${counts.occupied}</b> ${t.occupied}</span>
+  `;
+}
+
+function render(){
+  const t = T[lang];
+  applyStaticText();
+  grid.innerHTML = '';
+
+  rooms.forEach((room) => {
+    const card = document.createElement('div');
+    card.className = `card ${room.status}`;
+
+    const pattern = document.createElement('div');
+    pattern.className = 'card-pattern';
+    card.appendChild(pattern);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      rooms = rooms.filter(r => r.id !== room.id);
+      render();
+      save();
+    });
+    card.appendChild(removeBtn);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    body.innerHTML = `
+      <input class="room-number-input" type="text" value="" data-field="number">
+      <div class="capacity">3 ${t.beds}</div>
+      <div class="status-label">${t.statusLabels[room.status]}</div>
+      <div class="date-row">
+        <div class="date-field">
+          <label>${t.from}</label>
+          <input class="date-input" type="text" placeholder="____" value="${room.dateFrom}" data-field="dateFrom">
+        </div>
+        <div class="date-field">
+          <label>${t.to}</label>
+          <input class="date-input" type="text" placeholder="____" value="${room.dateTo}" data-field="dateTo">
+        </div>
+      </div>
+      <div class="payment-row">
+        <div class="payment-field">
+          <label>${t.payment}</label>
+          <select class="payment-select" data-field="payment">
+            <option value="none" ${room.payment==='none'?'selected':''}>${t.paymentLabels.none}</option>
+            <option value="deposit" ${room.payment==='deposit'?'selected':''}>${t.paymentLabels.deposit}</option>
+            <option value="partial" ${room.payment==='partial'?'selected':''}>${t.paymentLabels.partial}</option>
+            <option value="paid" ${room.payment==='paid'?'selected':''}>${t.paymentLabels.paid}</option>
+          </select>
+        </div>
+        <div class="amount-field">
+          <label>${t.amount}</label>
+          <input class="amount-input" type="text" placeholder="5000/15000" value="${room.amount.replace(/"/g,'&quot;')}" data-field="amount">
+        </div>
+      </div>
+      <div class="note-row">
+        <input class="note-input" type="text" placeholder="${t.notePlaceholder}" value="${room.note.replace(/"/g,'&quot;')}" data-field="note">
+      </div>
+    `;
+    card.appendChild(body);
+
+    // fix room number input value properly (avoid the hacky inline replace above)
+    const numInput = body.querySelector('.room-number-input');
+    numInput.value = room.number;
+
+    card.addEventListener('click', (e) => {
+      const tag = e.target.tagName;
+      if(tag === 'INPUT' || tag === 'SELECT') return;
+      const cur = STATUSES.indexOf(room.status);
+      room.status = STATUSES[(cur + 1) % STATUSES.length];
+      render();
+      save();
+    });
+
+    body.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('click', e => e.stopPropagation());
+      const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, e => {
+        const field = e.target.dataset.field;
+        room[field] = e.target.value;
+        if(field === 'payment' || field === 'number'){
+          // no full re-render needed for text fields; status label unaffected
+        }
+        renderSummary();
+        save();
+      });
+    });
+
+    grid.appendChild(card);
+  });
+
+  renderSummary();
+}
+
+document.getElementById('addRoom').addEventListener('click', () => {
+  const nextNumber = rooms.length ? (parseInt(rooms[rooms.length-1].number) || rooms.length) + 1 : 1;
+  rooms.push({ id: nextId++, number: String(nextNumber), status: 'free', note: '', dateFrom: '', dateTo: '', payment: 'none', amount: '' });
+  render();
+  save();
+});
+
+document.getElementById('langToggle').addEventListener('click', () => {
+  lang = lang === 'ru' ? 'en' : 'ru';
+  localStorage.setItem(LANG_KEY, lang);
+  render();
+});
+
+let saveTimeout;
+function save(){
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms));
+      localStorage.setItem(STORAGE_KEY + '-nextid', String(nextId));
+      savingEl.classList.add('show');
+      setTimeout(() => savingEl.classList.remove('show'), 1000);
+    }catch(err){
+      console.error('Storage error:', err);
+    }
+  }, 250);
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed) && parsed.length){
+        rooms = parsed.map(r => ({ dateFrom:'', dateTo:'', payment:'none', amount:'', note:'', ...r }));
+        const savedNextId = parseInt(localStorage.getItem(STORAGE_KEY + '-nextid'));
+        nextId = savedNextId || (Math.max(...rooms.map(r => r.id || 0)) + 1);
+      } else {
+        rooms = defaultRooms();
+      }
+    } else {
+      rooms = defaultRooms();
+    }
+  }catch(err){
+    rooms = defaultRooms();
+  }
+  render();
+}
+
+load();
+</script>
+</body>
+</html>
