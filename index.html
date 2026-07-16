@@ -92,6 +92,13 @@
     cursor: pointer;
   }
   .lang-toggle:hover{ border-color: var(--gold); color: var(--gold); }
+  .income{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--bone-dim);
+    white-space: nowrap;
+  }
+  .income b{ color: var(--gold); font-weight: 600; }
 
   .toolbar{
     margin-bottom: 16px;
@@ -247,6 +254,37 @@
     transition: opacity 0.3s ease;
   }
   .saving.show{ opacity: 1; }
+
+  .notepad-wrap{
+    margin-top: 28px;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+  }
+  .notepad-label{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .notepad{
+    width: 100%;
+    min-height: 90px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--bone);
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px;
+    outline: none;
+    resize: vertical;
+  }
+  .notepad:focus{ border-color: var(--gold); }
+  .notepad::placeholder{ color: #6A6357; }
 </style>
 </head>
 <body>
@@ -258,6 +296,7 @@
     </div>
     <div class="header-right">
       <div class="summary" id="summary"></div>
+      <div class="income" id="income"></div>
       <button class="lang-toggle" id="langToggle">EN</button>
     </div>
   </header>
@@ -267,6 +306,11 @@
   </div>
 
   <div class="grid" id="grid"></div>
+
+  <div class="notepad-wrap">
+    <label class="notepad-label" id="notepadLabel"></label>
+    <textarea class="notepad" id="notepad" placeholder=""></textarea>
+  </div>
 
   <div class="hint" id="hint"></div>
 </div>
@@ -285,10 +329,13 @@ const T = {
     beds: 'коек',
     statusLabels: { free: 'Свободен', booked: 'Бронь', occupied: 'Занят' },
     paymentLabels: { none: 'Не оплачено', deposit: 'Задаток', partial: 'Оплачено частично', paid: 'Оплачено' },
-    from: 'С', to: 'До', payment: 'Оплата', amount: 'Сумма',
+    from: 'С', to: 'До', payment: 'Оплата', amount: 'Получено',
     notePlaceholder: 'заметка...',
-    hint: 'Нажмите на карточку, чтобы сменить статус. Номер, даты, оплату и заметку можно редактировать прямо в полях. Крестик — удалить номер.',
-    saved: 'сохранено', roomNo: '№'
+    hint: 'Нажмите на карточку, чтобы сменить статус. Номер, даты, оплату и заметку можно редактировать прямо в полях. Крестик — удалить номер. При сбросе на «Свободен» остальные поля номера очищаются.',
+    saved: 'сохранено', roomNo: '№',
+    incomeLabel: 'Получено всего',
+    notepadLabel: 'Заметки',
+    notepadPlaceholder: 'напоминания себе...'
   },
   en: {
     title: 'Guesthouse',
@@ -298,10 +345,13 @@ const T = {
     beds: 'beds',
     statusLabels: { free: 'Free', booked: 'Booked', occupied: 'Occupied' },
     paymentLabels: { none: 'Not paid', deposit: 'Deposit', partial: 'Partially paid', paid: 'Paid' },
-    from: 'From', to: 'To', payment: 'Payment', amount: 'Amount',
+    from: 'From', to: 'To', payment: 'Payment', amount: 'Received',
     notePlaceholder: 'note...',
-    hint: 'Click a card to cycle its status. Room number, dates, payment and note are editable fields. The × removes a room.',
-    saved: 'saved', roomNo: 'No.'
+    hint: 'Click a card to cycle its status. Room number, dates, payment and note are editable fields. The × removes a room. Resetting to Free clears the room\'s other fields.',
+    saved: 'saved', roomNo: 'No.',
+    incomeLabel: 'Total received',
+    notepadLabel: 'Notes',
+    notepadPlaceholder: 'reminders to yourself...'
   }
 };
 function roomWordRu(n){
@@ -315,6 +365,8 @@ const STATUSES = ['free', 'booked', 'occupied'];
 let lang = localStorage.getItem(LANG_KEY) || 'ru';
 let rooms = [];
 let nextId = 1;
+let totalIncome = 0;
+const TOTAL_INCOME_KEY = 'guesthouse-total-income';
 
 function defaultRooms(){
   const arr = [];
@@ -327,6 +379,12 @@ function defaultRooms(){
 const grid = document.getElementById('grid');
 const summaryEl = document.getElementById('summary');
 const savingEl = document.getElementById('saving');
+const notepadEl = document.getElementById('notepad');
+const NOTEPAD_KEY = 'guesthouse-notepad';
+
+notepadEl.addEventListener('input', () => {
+  localStorage.setItem(NOTEPAD_KEY, notepadEl.value);
+});
 
 function applyStaticText(){
   const t = T[lang];
@@ -337,6 +395,8 @@ function applyStaticText(){
   document.getElementById('langToggle').textContent = lang === 'ru' ? 'EN' : 'RU';
   document.documentElement.lang = lang;
   savingEl.textContent = t.saved;
+  document.getElementById('notepadLabel').textContent = t.notepadLabel;
+  document.getElementById('notepad').placeholder = t.notepadPlaceholder;
 }
 
 function renderSummary(){
@@ -348,6 +408,12 @@ function renderSummary(){
     <span><span class="dot" style="background:var(--booked)"></span><b>${counts.booked}</b> ${t.booked}</span>
     <span><span class="dot" style="background:var(--occupied)"></span><b>${counts.occupied}</b> ${t.occupied}</span>
   `;
+  renderIncome();
+}
+
+function renderIncome(){
+  const t = T[lang];
+  document.getElementById('income').innerHTML = `${t.incomeLabel}: <b>${totalIncome.toLocaleString()}</b>`;
 }
 
 function render(){
@@ -402,7 +468,7 @@ function render(){
         </div>
         <div class="amount-field">
           <label>${t.amount}</label>
-          <input class="amount-input" type="text" placeholder="5000/15000" value="${room.amount.replace(/"/g,'&quot;')}" data-field="amount">
+          <input class="amount-input" type="number" inputmode="decimal" placeholder="0" value="${room.amount}" data-field="amount">
         </div>
       </div>
       <div class="note-row">
@@ -419,7 +485,15 @@ function render(){
       const tag = e.target.tagName;
       if(tag === 'INPUT' || tag === 'SELECT') return;
       const cur = STATUSES.indexOf(room.status);
-      room.status = STATUSES[(cur + 1) % STATUSES.length];
+      const newStatus = STATUSES[(cur + 1) % STATUSES.length];
+      room.status = newStatus;
+      if(newStatus === 'free'){
+        room.note = '';
+        room.dateFrom = '';
+        room.dateTo = '';
+        room.payment = 'none';
+        room.amount = '';
+      }
       render();
       save();
     });
@@ -429,10 +503,14 @@ function render(){
       const evt = el.tagName === 'SELECT' ? 'change' : 'input';
       el.addEventListener(evt, e => {
         const field = e.target.dataset.field;
-        room[field] = e.target.value;
-        if(field === 'payment' || field === 'number'){
-          // no full re-render needed for text fields; status label unaffected
+        if(field === 'amount'){
+          const oldVal = parseFloat(room.amount) || 0;
+          const newVal = parseFloat(e.target.value) || 0;
+          totalIncome += (newVal - oldVal);
+          localStorage.setItem(TOTAL_INCOME_KEY, String(totalIncome));
+          renderIncome();
         }
+        room[field] = e.target.value;
         renderSummary();
         save();
       });
@@ -490,6 +568,8 @@ function load(){
   }catch(err){
     rooms = defaultRooms();
   }
+  notepadEl.value = localStorage.getItem(NOTEPAD_KEY) || '';
+  totalIncome = parseFloat(localStorage.getItem(TOTAL_INCOME_KEY)) || 0;
   render();
 }
 
