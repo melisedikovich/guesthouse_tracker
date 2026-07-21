@@ -97,8 +97,23 @@
     font-size: 13px;
     color: var(--bone-dim);
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .income b{ color: var(--gold); font-weight: 600; }
+  .income-input{
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--gold);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 0;
+    outline: none;
+    width: 90px;
+  }
+  .income-input:focus{ border-bottom-color: var(--gold); }
 
   .toolbar{
     margin-bottom: 16px;
@@ -296,7 +311,10 @@
     </div>
     <div class="header-right">
       <div class="summary" id="summary"></div>
-      <div class="income" id="income"></div>
+      <div class="income" id="income">
+        <span id="incomeLabelText"></span>
+        <input class="income-input" id="incomeInput" type="number" inputmode="decimal">
+      </div>
       <button class="lang-toggle" id="langToggle">EN</button>
     </div>
   </header>
@@ -413,7 +431,11 @@ function renderSummary(){
 
 function renderIncome(){
   const t = T[lang];
-  document.getElementById('income').innerHTML = `${t.incomeLabel}: <b>${totalIncome.toLocaleString()}</b>`;
+  document.getElementById('incomeLabelText').textContent = t.incomeLabel + ':';
+  const incomeInput = document.getElementById('incomeInput');
+  if(document.activeElement !== incomeInput){
+    incomeInput.value = totalIncome;
+  }
 }
 
 function render(){
@@ -533,6 +555,11 @@ document.getElementById('langToggle').addEventListener('click', () => {
   lang = lang === 'ru' ? 'en' : 'ru';
   localStorage.setItem(LANG_KEY, lang);
   render();
+});
+
+document.getElementById('incomeInput').addEventListener('input', e => {
+  totalIncome = parseFloat(e.target.value) || 0;
+  localStorage.setItem(TOTAL_INCOME_KEY, String(totalIncome));
 });
 
 let saveTimeout;
